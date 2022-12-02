@@ -96,28 +96,34 @@ class TSPSolver:
 
 		while True:
 			reducedMatrix = distMatrix.copy()
+			# start at a random city
 			city = random.randint(0, ncities-1)
 			reducedMatrix[:, city] = float('inf')
+			# start a new path
 			path = [city]
 
 			for i in range(ncities):
+				# pick shortest path from current city
 				m = np.min(reducedMatrix[city])
 				currCity = reducedMatrix[city]
+				# get index number of next city with the shortest path
 				city = 0
 				for num in currCity:
 					if num == m:
 						break
 					city += 1
 				reducedMatrix[:, city] = float('inf')
+				# update path
 				path.append(city)
 
 			count += 1
-			bssf = TSPSolution([cities[x] for x in path])
-			if bssf.cost != float('inf'):
-				break
 
-			if count == ncities:
-				break
+			# a full path has been found
+			if len(cities) == ncities:
+				bssf = TSPSolution([cities[x] for x in path])
+				# a cost has been found
+				if bssf.cost != float('inf'):
+					break
 
 		end_time = time.time()
 		results['cost'] = bssf.cost
