@@ -159,7 +159,7 @@ class TSPSolver:
 		best solution found.  You may use the other three field however you like.
 		algorithm</returns> 
 	'''
-		
+
 	def fancy(self, time_allowance=60.0):
 		results = {}
 		cities = self._scenario.getCities()
@@ -172,23 +172,45 @@ class TSPSolver:
 			for y in range(ncities):
 				distMatrix[x][y] = cities[x].costTo(cities[y])
 
-		min_distance = self.tsp_distance(distMatrix, ncities)
+		# held-karp implementation
+		# used this: https://github.com/CarlEkerot/held-karp/blob/master/held-karp.py
+		costs = {}
+
+		for i in range(1, len(distMatrix)):
+			costs[(1 << i, i)] = (distMatrix[0][i], 0)
+
+		count = 0
+		for subSize in range(2, len(distMatrix)):
+			for subset in itertools.combinations(range(1, len(distMatrix)), subSize):
+				bits = 0
+				count += 1
+				for bit in subset:
+					bits |= 1 << bit
+				for k in subset:
+					prev = bits & ~(1 << k)
+
+					res = []
+					for m in subset:
+						if m == 0 or m == k:
+							continue
+						res.append((costs[(prev, m)][0] + distMatrix[m][k], m))
+					costs[(bits, k)] = min(res)
+		bits = (2 ** len(distMatrix) - 1) - 1
+
+		# Calculate optimal cost
+		res = []
+		for k in range(1, len(distMatrix)):
+			res.append((costs[(bits, k)][0] + distMatrix[k][0], k))
+		opt, parent = min(res)
 
 		end_time = time.time()
-		results['cost'] = min_distance
+		results['cost'] = opt
 		results['time'] = end_time - start_time
-		results['count'] = 0
+		results['count'] = 1
+		results['total'] = count
 		results['soln'] = None
 		return results
 
-	# I copied this from a YouTube video and really have no clue how it works. Needs more edits and to make more sense lol
-	def tsp_distance(self, distMatrix, ncities):
-		cost = {(1 << dest, dest): distMatrix[0][dest] for dest in range(1, ncities)}  # (subset, endpoint)
-		for size in range(2, ncities):
-			for sub in itertools.combinations(range(1, ncities), size):
-				sub_i = sum([1 << x for x in sub])
-				for dest in sub:
-					cost[sub_i, dest] = min([cost[sub_i & ~ (1 << dest), side] + distMatrix[side][dest] for side in sub if side != dest])
-		return min([cost[(1 << ncities) - 2, final] + distMatrix[final][0] for final in range(1, ncities)])
+
 
 
