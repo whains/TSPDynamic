@@ -105,16 +105,16 @@ class TSPSolver:
 			for i in range(ncities):
 				# pick shortest path from current city
 				m = np.min(reducedMatrix[city])
-				currCity = reducedMatrix[city]
 				# get index number of next city with the shortest path
-				city = 0
-				for num in currCity:
+				nextCity = 0
+				for num in reducedMatrix[city]:
 					if num == m:
 						break
-					city += 1
-				reducedMatrix[:, city] = float('inf')
+					nextCity += 1
+				reducedMatrix[:, nextCity] = float('inf')
 				# update path
-				path.append(city)
+				path.append(nextCity)
+				city = nextCity
 
 			count += 1
 
