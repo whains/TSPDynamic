@@ -181,6 +181,7 @@ class TSPSolver:
 		results['soln'] = None
 		return results
 
+	# I copied this from a YouTube video and really have no clue how it works. Needs more edits and to make more sense lol
 	def tsp_distance(self, distMatrix, ncities):
 		cost = {(1 << dest, dest): distMatrix[0][dest] for dest in range(1, ncities)}  # (subset, endpoint)
 		for size in range(2, ncities):
