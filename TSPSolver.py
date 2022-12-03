@@ -147,7 +147,117 @@ class TSPSolver:
 	'''
 		
 	def branchAndBound( self, time_allowance=60.0 ):
-		pass
+		class Node:
+			def __init__(self, _lowBound, _costMatrix, _path, _city):
+				self.lowBound = _lowBound
+				self.costMatrix = _costMatrix
+				self.path = _path
+				self.city = _city
+
+			def reduceMatrix(self):
+				for row in range(len(self.costMatrix)):
+					minCost = np.min(self.costMatrix[row])
+					if minCost != float('inf') and minCost != 0:
+						self.lowBound += minCost
+						self.costMatrix[row] -= minCost
+				for col in range(len(self.costMatrix)):
+					minCost = np.min(self.costMatrix[:, col])
+					if minCost != float('inf') and minCost != 0:
+						self.lowBound += minCost
+						self.costMatrix[:, col] -= minCost
+
+			def getNewSubNode(self, dest):
+				tempLowBound = self.lowBound + self.costMatrix[self.city][dest]
+
+				tempCostMatrix = self.costMatrix.copy()
+				tempCostMatrix[self.city] = float('inf')
+				tempCostMatrix[:, dest] = float('inf')
+
+				tempPath = self.path.copy()
+				tempPath.append(self.city)
+
+				temp = Node(tempLowBound, tempCostMatrix, tempPath, dest)
+				temp.reduceMatrix()
+
+				return temp
+
+			def __gt__(self, other):
+				if other.lowBound / len(other.path) < self.lowBound / len(self.path):
+					return True
+				else:
+					return False
+
+		time_allowance *= 10
+		results = {}
+		cities = self._scenario.getCities()
+		ncities = len(cities)
+		count = 0
+		bssf = self.defaultRandomTour()['soln']
+		for i in range(9):
+			minn = self.defaultRandomTour()['soln']
+			if minn.cost < bssf.cost:
+				bssf = minn
+		nstates = 0
+		npruned = 0
+		queue = []
+		maxqueue = 1
+		start_time = time.time()
+
+		costMatrix = np.full((ncities, ncities), float('inf'), dtype=float)
+
+		# fill up the cost matrix for the root
+		for x in range(ncities):
+			for y in range(ncities):
+				costMatrix[x][y] = cities[x].costTo(cities[y])
+
+		root = Node(0, costMatrix, [], 0)
+		nstates += 1
+
+		# reduce matrix
+		root.reduceMatrix()
+
+		# create priority queue
+		heapq.heappush(queue, root)
+
+		while len(queue) != 0 and time.time() - start_time < time_allowance:
+			maxqueue = max(maxqueue, len(queue))
+			subNode = heapq.heappop(queue)
+
+			for dest in range(ncities):
+				if dest != subNode.city:
+					nstates += 1
+					# check to see if next cities are fruitful
+					if subNode.costMatrix[subNode.city][dest] + subNode.lowBound <= bssf.cost:
+						# a fruitful path, find new node from sub node
+						nextNode = subNode.getNewSubNode(dest)
+						if nextNode.lowBound < bssf.cost:
+							if len(nextNode.path) == ncities:
+								newSolution = TSPSolution([cities[i] for i in nextNode.path])
+								if nextNode.lowBound < bssf.cost:
+									count += 1
+									bssf = newSolution
+							else:
+								heapq.heappush(queue, nextNode)
+								maxqueue = max(maxqueue, len(queue))
+						else:
+							npruned += 1
+					else:
+						npruned += 1
+
+		end_time = time.time()
+
+		for node in queue:
+			if node.lowBound > bssf.cost:
+				npruned += 1
+
+		results['cost'] = bssf.cost
+		results['time'] = end_time - start_time
+		results['count'] = count
+		results['soln'] = bssf
+		results['max'] = maxqueue
+		results['total'] = nstates
+		results['pruned'] = npruned
+		return results
 
 
 
