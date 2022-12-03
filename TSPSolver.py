@@ -93,8 +93,8 @@ class TSPSolver:
 		for x in range(ncities):
 			for y in range(ncities):
 				distMatrix[x][y] = cities[x].costTo(cities[y])
-
-		while True:
+		
+		while time.time() - start_time < time_allowance:
 			reducedMatrix = distMatrix.copy()
 			# start at a random city
 			city = random.randint(0, ncities-1)
@@ -164,7 +164,6 @@ class TSPSolver:
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
-		start_time = time.time()
 
 		distMatrix = np.full((ncities, ncities), float('inf'), dtype=float)
 
@@ -179,8 +178,11 @@ class TSPSolver:
 		for i in range(1, len(distMatrix)):
 			costs[(1 << i, i)] = (distMatrix[0][i], 0)
 
+		start_time = time.time()
 		count = 0
 		for subSize in range(2, len(distMatrix)):
+			if time.time() - start_time > time_allowance:
+				break
 			for subset in itertools.combinations(range(1, len(distMatrix)), subSize):
 				bits = 0
 				count += 1
